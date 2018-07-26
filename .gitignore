@@ -1,3 +1,6 @@
 .idea/
 out.txt
 Train_details_22122017.csv
+*.pyc
+cache/
+data/

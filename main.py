@@ -16,8 +16,6 @@ This data file is not included in this repository to avoid redistribution
 issues (if any). You can download from above link.
 """
 
-import csv
-import os
 from collections import Counter
 
 import matplotlib.pylab as plt
@@ -25,60 +23,9 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
-# Can be downloaded with 'download_station_data()' function
-STATION_DATA_FILE = "stations_data.txt"
+from helper import *
 
-# Can be downloaded from link given in the description
-TRAIN_DATA_FILE = "Train_details_22122017.csv"
-
-
-class Train:
-    """
-    Simple class to access structured data
-    """
-
-    def __init__(self, data):
-        self.data = data
-        self.number = data[0]
-        self.name = data[1]
-        self.seq = data[2]  # Station Number from start
-        self.station_code = data[3]
-        self.station_name = data[4]
-        self.arrival_time = data[5]
-        self.departure_time = data[6]
-        self.distance = data[7]
-        self.source_station = data[8]
-        self.source_station_name = data[9]
-        self.destination_station = data[10]
-        self.destination_station_name = data[11]
-
-
-def get_data() -> list:
-    """
-    Converts CSV file into Train models
-    """
-    all_trains = []
-    with open(TRAIN_DATA_FILE) as f:
-        c = csv.reader(f)
-        for row in c:
-            all_trains.append(Train(row))
-    return all_trains
-
-
-def get_station_data() -> dict:
-    station_dict = {}
-    if os.path.isfile(STATION_DATA_FILE):
-        with open(STATION_DATA_FILE) as f:
-            for line in f:
-                station_dict[line.strip().split(";")[0]] = line.strip().split(
-                    ";")
-    else:
-        raise Exception(
-            "You need station file ("
-            + STATION_DATA_FILE + ") for this. Use 'download_station_data( "
-                                  ")' before using this")
-
-    return station_dict
+DISTANCE_CUT_OFF = 27.71
 
 
 def get_statistics() -> None:
@@ -140,7 +87,7 @@ def stations_with_most_trains() -> None:
 
     names = []
     values = []
-    for c in count.most_common(15):
+    for c in count.most_common(10):
         names.append(c[0])
         values.append(c[1])
 
@@ -150,8 +97,58 @@ def stations_with_most_trains() -> None:
     ax = figure.add_subplot(111)
     ax.barh(ind, values, color="#00b6cb")
     ax.set_yticks(ind)
-    ax.set_xlabel("Number of train visited")
-    ax.set_yticklabels(names)
+    ax.set_xlabel("Number of unique train visits")
+    ax.set_yticklabels([x.lower() for x in names])
+    plt.show()
+
+
+def train_distance() -> None:
+    """
+    Plots distribution of train distances
+    """
+    station_distance = []
+    for r in get_full_trains():
+        station_distance.append(float(r.total_distance))
+
+    station_distance = np.asanyarray([x for x in station_distance if x < 100])
+
+    plt.hist([x for x in station_distance if x >= DISTANCE_CUT_OFF], 50,
+             label="Accepted")
+    plt.hist([x for x in station_distance if x < DISTANCE_CUT_OFF], 25,
+             label="Rejected", )
+
+    # plt.hist(station_distance, 50)
+    plt.ylabel("Number of trains")
+    plt.xlabel("Travel Distance (in Km)")
+    plt.legend(loc=0)
+    plt.show()
+
+
+def stations_with_cut_off() -> None:
+    """
+    Plots bar plot of stations visited by most number of trains assuming
+    distance cutoff
+    """
+
+    count = Counter()
+    for r in get_full_trains():
+        if float(r.total_distance) > DISTANCE_CUT_OFF:
+            count.update({r.origin})
+
+    names = []
+    values = []
+    for c in count.most_common(10):
+        names.append(c[0])
+        values.append(c[1])
+
+    ind = np.arange(len(names))
+
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+    ax.barh(ind, values, color="#95d13c")
+    ax.set_yticks(ind)
+    ax.set_xlabel("Number of unique long distance train visits")
+    ax.set_yticklabels([x.lower() for x in names])
     plt.show()
 
 
@@ -178,7 +175,7 @@ def stations_with_train_origin() -> None:
     ax = figure.add_subplot(111)
     ax.barh(ind, values, color="#95d13c")
     ax.set_yticks(ind)
-    ax.set_xlabel("Number of train origins")
+    ax.set_xlabel("Number of unique train origins")
     ax.set_yticklabels(names)
     plt.show()
 
@@ -254,4 +251,4 @@ def state_wise_stations():
 
 
 if __name__ == "__main__":
-    state_wise_stations()
+    stations_with_cut_off()
