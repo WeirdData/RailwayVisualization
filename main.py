@@ -166,17 +166,17 @@ def stations_with_train_origin() -> None:
 
     names = []
     values = []
-    for c in count.most_common(15):
+    for c in count.most_common(10):
         names.append(c[0])
         values.append(c[1])
 
     ind = np.arange(len(names))
     figure = plt.figure()
     ax = figure.add_subplot(111)
-    ax.barh(ind, values, color="#95d13c")
+    ax.barh(ind, values, color="#fcaf6d")
     ax.set_yticks(ind)
     ax.set_xlabel("Number of unique train origins")
-    ax.set_yticklabels(names)
+    ax.set_yticklabels([x.lower() for x in names])
     plt.show()
 
 
@@ -192,7 +192,7 @@ def stations_pairs() -> None:
 
     names = []
     values = []
-    for c in count.most_common(15):
+    for c in count.most_common(20):
         names.append(c[0])
         values.append(c[1])
 
@@ -202,7 +202,7 @@ def stations_pairs() -> None:
     ax.barh(ind, values, color="#e3bc13")
     ax.set_yticks(ind)
     ax.set_xlabel("Number of origin--destinations trains")
-    ax.set_yticklabels(names)
+    ax.set_yticklabels([x.lower() for x in names])
     plt.show()
 
 
@@ -237,7 +237,7 @@ def download_station_data() -> None:
                 print(";".join(values), file=f)
 
 
-def state_wise_stations():
+def get_state_info():
     stations = get_station_data()
     data = get_data()
     c = Counter()
@@ -250,5 +250,17 @@ def state_wise_stations():
     print(c)
 
 
+def get_additional_info():
+    data = get_full_trains()
+    c = {}
+    for r in data:
+        try:
+            c[r.train_number] = float(r.total_distance) / len(r.station_list)
+        except ZeroDivisionError:
+            pass
+
+    print(sorted(c.items(), key=lambda kv: kv[1]))
+
+
 if __name__ == "__main__":
-    stations_with_cut_off()
+    get_additional_info()
