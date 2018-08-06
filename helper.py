@@ -40,7 +40,9 @@ class FullTrain:
         self.train_number = None
         self.train_name = None
         self.origin = None
+        self.origin_code = None
         self.destination = None
+        self.destination_code = None
         self._station_list = []
         self.total_distance = 0
 
@@ -55,9 +57,11 @@ class FullTrain:
     def add_station(self, train: Train):
         if self.origin is None:
             self.origin = train.source_station_name
+            self.origin_code = train.source_station
             self.train_name = train.name
             self.train_number = train.number
             self.destination = train.destination_station_name
+            self.destination_code = train.destination_station
 
         self._station_list.append(train)
         self.total_distance = train.distance

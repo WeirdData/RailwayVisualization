@@ -252,14 +252,14 @@ def get_state_info():
 
 def get_additional_info():
     data = get_full_trains()
-    c = {}
+    c = Counter()
     for r in data:
         try:
-            c[r.train_number] = float(r.total_distance) / len(r.station_list)
-        except ZeroDivisionError:
+            c.update({len(r.train_number)})
+        except TypeError:
             pass
 
-    print(sorted(c.items(), key=lambda kv: kv[1]))
+    print(c)
 
 
 if __name__ == "__main__":
