@@ -48,7 +48,7 @@ class FullTrain:
 
     @property
     def stations(self) -> list:
-        return [x.station_name for x in self._station_list]
+        return [x.station_code for x in self._station_list]
 
     @property
     def station_list(self) -> list:
@@ -68,6 +68,22 @@ class FullTrain:
 
     def is_same_train(self, train: Train):
         return train.number == self.train_number
+
+    def get_connection_pairs(self) -> list:
+        """
+        Returns pairs of possible source and destinations
+        """
+        all_pairs = []
+        for i in range(len(self.stations)):
+            while i < len(self.stations):
+                for k in range(i, len(self.stations)):
+                    if i != k:
+                        if [i, k] not in all_pairs:
+                            all_pairs.append([i, k])
+                i += 1
+
+        return [[self.stations[x], self.stations[y]]
+                for [x, y] in all_pairs]
 
 
 def get_data() -> list:
