@@ -366,7 +366,7 @@ def zone_wise_distribution():
     plt.show()
 
 
-def play():
+def zonal_connectivity():
     """
     Warning: This function will take long time
     Plots histogram of connectivity between zones
@@ -375,11 +375,9 @@ def play():
     station_data = get_station_data()
 
     c = Counter()
-    k = 0
 
     for z in station_data:
         c.update({station_data[z][3]})
-        k += 1
 
     zone_list = []
     for k in c:
@@ -408,6 +406,54 @@ def play():
     heatmap = ax.pcolor(mat)
     plt.xticks(np.arange(len(zone_list)) + 0.5, zone_list, rotation=45, )
     plt.yticks(np.arange(len(zone_list)) + 0.5, zone_list, rotation=45)
+    ax.set(aspect="equal")
+    plt.colorbar(heatmap)
+    plt.show()
+
+
+def play():
+    """
+    Warning: This function will take long time
+    Plots histogram of connectivity between States
+    """
+    data = get_full_trains()
+    station_data = get_station_data()
+
+    c = Counter()
+
+    reject_words = ["None", "BANG"]
+
+    for z in station_data:
+        if not (station_data[z][2] in reject_words):
+            c.update({station_data[z][2]})
+
+    state_list = []
+    for k in c:
+        if len(k) > 0:
+            state_list.append(k)
+
+    state_list.sort()
+    mat = np.zeros(shape=(len(state_list), len(state_list)))
+
+    for r in data:
+        if r.origin is not None:
+            try:
+                k = r.get_connection_pairs()
+                if [x in station_data.keys() for x in
+                    set(np.asarray(k).flatten())]:
+                    for pair in k:
+
+                        origin = state_list.index(station_data[pair[0]][2])
+                        dest = state_list.index(station_data[pair[1]][2])
+                        if origin != dest:
+                            mat[origin, dest] = mat[origin, dest] + 1
+            except (ValueError, KeyError):
+                pass
+
+    fig, ax = plt.subplots()
+    heatmap = ax.pcolor(mat, cmap='copper')
+    plt.xticks(np.arange(len(state_list)) + 0.5, state_list, rotation=45, )
+    plt.yticks(np.arange(len(state_list)) + 0.5, state_list, rotation=45)
     ax.set(aspect="equal")
     plt.colorbar(heatmap)
     plt.show()
