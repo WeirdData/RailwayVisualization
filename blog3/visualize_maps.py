@@ -1,6 +1,9 @@
-from collections import OrderedDict, Counter
+import datetime
+from collections import OrderedDict, Counter, defaultdict
 
 import matplotlib
+import matplotlib.pylab  as plt
+import numpy as np
 import osmnx as ox
 
 from helper import *
@@ -19,7 +22,7 @@ excluded_from_map = ["Lakshadweep", "Andaman and Nicobar Islands"]
 def get_colors(values, start=0.3):
     val = [x + start for x in values]
     val = [x / max(val) for x in val]
-    cmap = matplotlib.cm.get_cmap('Purples')  # Change according to your taste
+    cmap = matplotlib.cm.get_cmap('YlGn')  # Change according to your taste
     colors = [cmap(x) for x in val]
     return colors
 
@@ -102,9 +105,12 @@ def train_origin_data():
     a = 0
     for r in data:
         try:
-            c.update({stations[str(r.origin_code).strip()][2]})
-            a += 1
-        except KeyError:
+            if len(r.train_number) == 5:
+                letter = str(r.train_number)[0]
+                if letter in ["0", "1", "2", "6", "7"]:
+                    c.update({stations[str(r.origin_code).strip()][2]})
+                    a += 1
+        except (TypeError, ValueError):
             pass
 
     print(c)
@@ -144,5 +150,126 @@ def inter_state_trains():
     plot_india_map(all_states)
 
 
+class TimeHolder:
+    def __init__(self, time, value):
+        datetime_object = datetime.datetime.strptime(time, '%H:%M:%S')
+        self.time = datetime_object
+        self.value = value
+        self.name = datetime_object.strftime('%I:%M %p')
+
+    def check_slot(self):
+        for i in range(24):
+            if self.time.time() < datetime.time(hour=i):
+                return i
+        return 24
+
+
+def convert_slot(hour: int):
+    if hour != 24:
+        d = datetime.time(hour=hour)
+        d2 = datetime.time(hour=(hour - 1))
+        return d2.strftime('%H:%M') + " - " + d.strftime('%H:%M')
+    else:
+        return "23:00 - 00:00"
+
+
+def train_departure_time():
+    data = get_full_trains()
+    c = Counter()
+    # for r in data:
+    #     try:
+    #         c.update(
+    #             {r.station_list[0].departure_time})  # First station departure
+    #     # c.update({r.station_list[-1].arrival_time})  # Last station arrival
+    #     except IndexError:
+    #         pass
+
+    # After removing local and suburbans
+    for r in data:
+        try:
+            if len(r.train_number) == 5:
+                letter = str(r.train_number)[0]
+                if letter in ["0", "1", "2", "6", "7"]:
+                    c.update(
+                        {r.station_list[
+                             0].departure_time})  # First station departure
+        #   c.update({r.station_list[-1].arrival_time})  # Last station arrival
+        except (IndexError, TypeError):
+            pass
+
+    object_holder = []
+    for k in c.most_common():
+        object_holder.append(TimeHolder(k[0], k[1]))
+
+    new_list = defaultdict(int)
+
+    for o in object_holder:
+        new_list[o.check_slot()] += o.value
+
+    print(new_list)
+    f = []
+    for k in new_list.keys():
+        f.append((k, new_list[k]))
+
+    f.sort(key=lambda x: x[0], reverse=True)
+    names = []
+    values = []
+    colors = []
+
+    for t in f:
+        names.append(convert_slot(t[0]))
+        values.append(t[1])
+        if t[0] < 13:
+            colors.append("#f87eac")
+        else:
+            colors.append("#00baa1")
+
+    ind = np.arange(len(names))
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+    ax.barh(ind, values, color=colors)
+    ax.set_yticks(ind)
+    ax.set_xlabel("Frequency")
+    ax.set_yticklabels([str(x) for x in names])
+    plt.show()
+
+
+def common_timings():
+    data = get_full_trains()
+    c = Counter()
+    for r in data:
+        try:
+            if len(r.train_number) == 5:
+                letter = str(r.train_number)[0]
+                if letter in ["0", "1", "2", "6", "7"]:
+                    # c.update(
+                    #     {r.station_list[
+                    #          0].departure_time})  # First station departure
+                    c.update({r.station_list[-1].arrival_time})  # Last station arrival
+        except (IndexError, TypeError):
+            pass
+
+    object_holder = []
+    for k in c.most_common(10):
+        object_holder.append(TimeHolder(k[0], k[1]))
+
+    object_holder.sort(key=lambda x: x.time, reverse=True)
+    names = []
+    values = []
+
+    for o in object_holder:
+        names.append(o.name)
+        values.append(o.value)
+
+    ind = np.arange(len(names))
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+    ax.barh(ind, values, color="#00baa1")
+    ax.set_yticks(ind)
+    ax.set_xlabel("Frequency")
+    ax.set_yticklabels([str(x) for x in names])
+    plt.show()
+
+
 if __name__ == "__main__":
-    train_origin_data()
+    common_timings()
